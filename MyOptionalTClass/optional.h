@@ -2,7 +2,7 @@
 #include <utility>
 #include <cstring>
 
-// Исключение этого типа должно генерироватся при обращении к пустому optional
+// РСЃРєР»СЋС‡РµРЅРёРµ СЌС‚РѕРіРѕ С‚РёРїР° РґРѕР»Р¶РЅРѕ РіРµРЅРµСЂРёСЂРѕРІР°С‚СЃСЏ РїСЂРё РѕР±СЂР°С‰РµРЅРёРё Рє РїСѓСЃС‚РѕРјСѓ optional
 class BadOptionalAccess : public std::exception
 {
 public:
@@ -14,6 +14,7 @@ public:
     }
 };
 
+
 template <typename T>
 class Optional
 {
@@ -22,16 +23,16 @@ public:
 
     Optional(const T& value) : is_initialized_(true)
     {
-        // Версия с храненем указателя на объект в буфере
+        // Р’РµСЂСЃРёСЏ СЃ С…СЂР°РЅРµРЅРµРј СѓРєР°Р·Р°С‚РµР»СЏ РЅР° РѕР±СЉРµРєС‚ РІ Р±СѓС„РµСЂРµ
         //value_ = new (&data_[0]) T(value);
-        // Версия БЕЗ хранения указателя на объект в буфере
+        // Р’РµСЂСЃРёСЏ Р‘Р•Р— С…СЂР°РЅРµРЅРёСЏ СѓРєР°Р·Р°С‚РµР»СЏ РЅР° РѕР±СЉРµРєС‚ РІ Р±СѓС„РµСЂРµ
         new (&data_[0]) T(value);
     }
     Optional(T&& value) : is_initialized_(true)
     {
-        // Версия с храненем указателя на объект в буфере
+        // Р’РµСЂСЃРёСЏ СЃ С…СЂР°РЅРµРЅРµРј СѓРєР°Р·Р°С‚РµР»СЏ РЅР° РѕР±СЉРµРєС‚ РІ Р±СѓС„РµСЂРµ
         //value_ = new (&data_[0]) T(std::move(value));
-        // Версия БЕЗ хранения указателя на объект в буфере
+        // Р’РµСЂСЃРёСЏ Р‘Р•Р— С…СЂР°РЅРµРЅРёСЏ СѓРєР°Р·Р°С‚РµР»СЏ РЅР° РѕР±СЉРµРєС‚ РІ Р±СѓС„РµСЂРµ
         new (&data_[0]) T(std::move(value));
     }
     Optional(const Optional& other)
@@ -51,36 +52,63 @@ public:
         }
     }
 
-    Optional& operator=(const T& value);
-    Optional& operator=(T&& rhs)
-    {
-        data_
-    }
-    Optional& operator=(const Optional& rhs)
-    {
-        // Копируем буфер
-        std::strcpy(data_, rhs.data_);
-        // Если rhs имеет флаг инициализации, создаем объект
-        if (rhs.is_initialized_)
-        {
-            value_ = &(data_);
-        }
 
+    Optional& operator=(const T& value)
+    {
+        // Р’РµСЂСЃРёСЏ СЃ С…СЂР°РЅРµРЅРµРј СѓРєР°Р·Р°С‚РµР»СЏ РЅР° РѕР±СЉРµРєС‚ РІ Р±СѓС„РµСЂРµ
+        //value_ = new (&data_[0]) T(value);
+        // Р’РµСЂСЃРёСЏ Р‘Р•Р— С…СЂР°РЅРµРЅРёСЏ СѓРєР°Р·Р°С‚РµР»СЏ РЅР° РѕР±СЉРµРєС‚ РІ Р±СѓС„РµСЂРµ
+        new (&data_[0]) T(value);
+        is_initialized_ = true;
         return *this;
     }
-    Optional& operator=(Optional&& rhs);
+
+
+    Optional& operator=(T&& rhs)
+    {
+        // Р’РµСЂСЃРёСЏ СЃ С…СЂР°РЅРµРЅРµРј СѓРєР°Р·Р°С‚РµР»СЏ РЅР° РѕР±СЉРµРєС‚ РІ Р±СѓС„РµСЂРµ
+        //value_ = new (&data_[0]) T(std::move(value));
+        // Р’РµСЂСЃРёСЏ Р‘Р•Р— С…СЂР°РЅРµРЅРёСЏ СѓРєР°Р·Р°С‚РµР»СЏ РЅР° РѕР±СЉРµРєС‚ РІ Р±СѓС„РµСЂРµ
+        new (&data_[0]) T(std::move(rhs));
+        is_initialized_ = true;
+        return *this;
+    }
+
+
+    Optional& operator=(const Optional& rhs)
+    {
+        if (rhs.is_initialized_)
+        {
+            new (&data_[0]) T(rhs.Value());
+            is_initialized_ = true;
+        }
+        return *this;
+    }
+
+
+    Optional& operator=(Optional&& rhs)
+    {
+        if (rhs.is_initialized_)
+        {
+            new (&data_[0]) T(std::move(rhs.Value()));
+            is_initialized_ = true;
+        }
+        return *this;
+    }
 
     ~Optional()
     {
-        // Удаляем объект, если есть
+        // РЈРґР°Р»СЏРµРј РѕР±СЉРµРєС‚, РµСЃР»Рё РµСЃС‚СЊ
         if (is_initialized_)
         {
-            value_->~T();
-            // Не требуется уже, объект удаляется
+            // Р”РµСЃС‚СЂСѓРєС‚РѕСЂ
+            reinterpret_cast<T&>(this->data_[0]).~T();
+            // РћСЃРІРѕР±РѕР¶РґР°РµРј РїР°РјСЏС‚СЊ РІ Р±СѓС„РµСЂРµ
+            delete (&data_[0]);
+            // РќРµ С‚СЂРµР±СѓРµС‚СЃСЏ СѓР¶Рµ, РѕР±СЉРµРєС‚ СѓРґР°Р»СЏРµС‚СЃСЏ
             //is_initialized_ = false;
         }
-        // Буфер на стеке. Удалять не требуется
-        //operator delete (data_);
+        // Р‘СѓС„РµСЂ РЅР° СЃС‚РµРєРµ. РЈРґР°Р»СЏС‚СЊ РµРіРѕ РЅРµ С‚СЂРµР±СѓРµС‚СЃСЏ
     }
 
     bool HasValue() const
@@ -88,29 +116,29 @@ public:
         return is_initialized_;
     }
 
-    // Операторы * и -> не должны делать никаких проверок на пустоту Optional.
-    // Эти проверки остаются на совести программиста
+    // РћРїРµСЂР°С‚РѕСЂС‹ * Рё -> РЅРµ РґРѕР»Р¶РЅС‹ РґРµР»Р°С‚СЊ РЅРёРєР°РєРёС… РїСЂРѕРІРµСЂРѕРє РЅР° РїСѓСЃС‚РѕС‚Сѓ Optional.
+    // Р­С‚Рё РїСЂРѕРІРµСЂРєРё РѕСЃС‚Р°СЋС‚СЃСЏ РЅР° СЃРѕРІРµСЃС‚Рё РїСЂРѕРіСЂР°РјРјРёСЃС‚Р°
     T& operator*()
     {
-        return *this->value_;
+        return reinterpret_cast<T&>(this->data_[0]);
     }
 
     const T& operator*() const
     {
-        return *this->value_;
+        return reinterpret_cast<const T&>(this->data_[0]);
     }
 
     T* operator->()
     {
-        return this->value_;
+        return reinterpret_cast<T*>(data_);
     }
 
     const T* operator->() const
     {
-        return this->value_;
+        return reinterpret_cast<const T*>(data_);
     }
 
-    // Метод Value() генерирует исключение BadOptionalAccess, если Optional пуст
+    // РњРµС‚РѕРґ Value() РіРµРЅРµСЂРёСЂСѓРµС‚ РёСЃРєР»СЋС‡РµРЅРёРµ BadOptionalAccess, РµСЃР»Рё Optional РїСѓСЃС‚
     T& Value()
     {
         if (!this->HasValue())
@@ -118,7 +146,7 @@ public:
             throw BadOptionalAccess();
         }
 
-        return *value_;
+        return reinterpret_cast<T&>(this->data_[0]);
     }
 
     const T& Value() const
@@ -127,29 +155,28 @@ public:
         {
             throw BadOptionalAccess();
         }
-
-        return *value_;
+        
+        return reinterpret_cast<const T&>(this->data_);
     }
 
     void Reset()
     {
-        // Вызываем деструктор размещенного в выделенной памяти объекта
-        value_->~T();
+        // Р’С‹Р·С‹РІР°РµРј РґРµСЃС‚СЂСѓРєС‚РѕСЂ СЂР°Р·РјРµС‰РµРЅРЅРѕРіРѕ РІ РІС‹РґРµР»РµРЅРЅРѕР№ РїР°РјСЏС‚Рё РѕР±СЉРµРєС‚Р°
+        reinterpret_cast<T*>(data_[0])->~T();
+        // РџР°СЂРЅС‹Р№ operator delete РґР»СЏ Р±СѓС„РµСЂР°
+        delete (&data_[0]);
         is_initialized_ = false;
 
-        // Буфер не трогаем, Reset == удалению объекта и готовность
-        // буфера к новому размещению
-        // Буфер на стеке, удалять не требуется.
-        //operator delete (data_);
+        // Р‘СѓС„РµСЂ РЅР° СЃС‚РµРєРµ, СѓРґР°Р»СЏС‚СЊ РЅРµ С‚СЂРµР±СѓРµС‚СЃСЏ.
     }
 
 private:
-    // Буфер для хранения 1 объекта типа T.
-    // alignas нужен для правильного выравнивания блока памяти
-    // Буфер на стеке, operator new/delete не требуется
+    // Р‘СѓС„РµСЂ РґР»СЏ С…СЂР°РЅРµРЅРёСЏ 1 РѕР±СЉРµРєС‚Р° С‚РёРїР° T.
+    // alignas РЅСѓР¶РµРЅ РґР»СЏ РїСЂР°РІРёР»СЊРЅРѕРіРѕ РІС‹СЂР°РІРЅРёРІР°РЅРёСЏ Р±Р»РѕРєР° РїР°РјСЏС‚Рё
+    // Р‘СѓС„РµСЂ РЅР° СЃС‚РµРєРµ, operator new/delete РЅРµ С‚СЂРµР±СѓРµС‚СЃСЏ
     alignas(T) char data_[sizeof(T)];
-    // Указатель на размещенный при помощи operator new в буфере объект типа Т
-    T* value_ = nullptr;
+    // РЈРєР°Р·Р°С‚РµР»СЊ РЅР° СЂР°Р·РјРµС‰РµРЅРЅС‹Р№ РїСЂРё РїРѕРјРѕС‰Рё operator new РІ Р±СѓС„РµСЂРµ РѕР±СЉРµРєС‚ С‚РёРїР° Рў
+    //T* value_ = nullptr;
 
     bool is_initialized_ = false;
 };
