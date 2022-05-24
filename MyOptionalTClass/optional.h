@@ -73,7 +73,7 @@ public:
     {
         if (is_initialized_)
         {
-            reinterpret_cast<T&>(data_) = value;
+            *(reinterpret_cast<T*>(data_)) = value;
         }
         else
         {
@@ -88,7 +88,7 @@ public:
     {
         if (is_initialized_)
         {
-            reinterpret_cast<T&>(data_) = std::move(rhs);
+            *(reinterpret_cast<T*>(data_)) = std::move(rhs);
         }
         else
         {
@@ -105,7 +105,7 @@ public:
         {
             if (is_initialized_)
             {
-                reinterpret_cast<T&>(data_) = rhs.Value();
+                *(reinterpret_cast<T*>(data_)) = rhs.Value();
             }
             else
             {
@@ -130,7 +130,7 @@ public:
         {
             if (is_initialized_)
             {
-                reinterpret_cast<T&>(data_) = std::move(rhs.Value());
+                *(reinterpret_cast<T*>(data_)) = std::move(rhs.Value());
             }
             else
             {
