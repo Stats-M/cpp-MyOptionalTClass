@@ -28,7 +28,7 @@ public:
         // Версия БЕЗ хранения указателя на объект в буфере
         if (is_initialized_)
         {
-            reinterpret_cast<T&>(data_) = value;
+            new(data_) T(value);
         }
         else
         {
@@ -43,7 +43,7 @@ public:
         // Версия БЕЗ хранения указателя на объект в буфере
         if (is_initialized_)
         {
-            reinterpret_cast<T&>(data_) = std::move(value);
+            new(data_) T(std::move(value));
         }
         else
         {
