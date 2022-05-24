@@ -21,19 +21,35 @@ class Optional
 public:
     Optional() = default;
 
-    Optional(const T& value) : is_initialized_(true)
+    Optional(const T& value)
     {
         // Версия с храненем указателя на объект в буфере
-        //value_ = new (&data_[0]) T(value);
+        //value_ = new (&data_[0]) T(value);  // при T* value_
         // Версия БЕЗ хранения указателя на объект в буфере
-        new (&data_[0]) T(value);
+        if (is_initialized_)
+        {
+            reinterpret_cast<T&>(data_) = value;
+        }
+        else
+        {
+            new (&data_[0]) T(value);
+            is_initialized_ = true;
+        }
     }
-    Optional(T&& value) : is_initialized_(true)
+    Optional(T&& value)
     {
         // Версия с храненем указателя на объект в буфере
-        //value_ = new (&data_[0]) T(std::move(value));
+        //value_ = new (&data_[0]) T(std::move(value));  // при T* value_
         // Версия БЕЗ хранения указателя на объект в буфере
-        new (&data_[0]) T(std::move(value));
+        if (is_initialized_)
+        {
+            reinterpret_cast<T&>(data_) = std::move(value);
+        }
+        else
+        {
+            new (&data_[0]) T(std::move(value));
+            is_initialized_ = true;
+        }
     }
     Optional(const Optional& other)
     {
@@ -55,21 +71,29 @@ public:
 
     Optional& operator=(const T& value)
     {
-        // Версия с храненем указателя на объект в буфере
-        //value_ = new (&data_[0]) T(value);
-        // Версия БЕЗ хранения указателя на объект в буфере
-        new (&data_[0]) T(value);
-        is_initialized_ = true;
+        if (is_initialized_)
+        {
+            reinterpret_cast<T&>(data_) = value;
+        }
+        else
+        {
+            new (&data_[0]) T(value);
+            is_initialized_ = true;
+        }
         return *this;
     }
 
 
     Optional& operator=(T&& rhs)
     {
-        // Версия с храненем указателя на объект в буфере
-        //value_ = new (&data_[0]) T(std::move(value));
-        // Версия БЕЗ хранения указателя на объект в буфере
-        new (&data_[0]) T(std::move(rhs));
+        if (is_initialized_)
+        {
+            reinterpret_cast<T&>(data_) = std::move(rhs);
+        }
+        else
+        {
+            new (&data_[0]) T(std::move(rhs));
+        }
         is_initialized_ = true;
         return *this;
     }
@@ -79,8 +103,22 @@ public:
     {
         if (rhs.is_initialized_)
         {
-            new (&data_[0]) T(rhs.Value());
-            is_initialized_ = true;
+            if (is_initialized_)
+            {
+                reinterpret_cast<T&>(data_) = rhs.Value();
+            }
+            else
+            {
+                new (&data_[0]) T(rhs.Value());
+                is_initialized_ = true;
+            }
+        }
+        else
+        {
+            if (is_initialized_)
+            {
+                this->Reset();
+            }
         }
         return *this;
     }
@@ -90,8 +128,22 @@ public:
     {
         if (rhs.is_initialized_)
         {
-            new (&data_[0]) T(std::move(rhs.Value()));
-            is_initialized_ = true;
+            if (is_initialized_)
+            {
+                reinterpret_cast<T&>(data_) = std::move(rhs.Value());
+            }
+            else
+            {
+                new (&data_[0]) T(std::move(rhs.Value()));
+                is_initialized_ = true;
+            }
+        }
+        else
+        {
+            if (is_initialized_)
+            {
+                this->Reset();
+            }
         }
         return *this;
     }
@@ -102,11 +154,11 @@ public:
         if (is_initialized_)
         {
             // Деструктор
-            reinterpret_cast<T&>(this->data_[0]).~T();
+            reinterpret_cast<T*>(data_)->~T();
             // Освобождаем память в буфере
-            delete (&data_[0]);
-            // Не требуется уже, объект удаляется
-            //is_initialized_ = false;
+            // Буфер на стеке, operator new/delete для буфера не требуется
+            //delete (&data_);
+            is_initialized_ = false;
         }
         // Буфер на стеке. Удалять его не требуется
     }
@@ -120,12 +172,12 @@ public:
     // Эти проверки остаются на совести программиста
     T& operator*()
     {
-        return reinterpret_cast<T&>(this->data_[0]);
+        return reinterpret_cast<T&>(*data_);
     }
 
     const T& operator*() const
     {
-        return reinterpret_cast<const T&>(this->data_[0]);
+        return reinterpret_cast<const T&>(*data_);
     }
 
     T* operator->()
@@ -146,7 +198,7 @@ public:
             throw BadOptionalAccess();
         }
 
-        return reinterpret_cast<T&>(this->data_[0]);
+        return reinterpret_cast<T&>(*data_);
     }
 
     const T& Value() const
@@ -156,15 +208,16 @@ public:
             throw BadOptionalAccess();
         }
         
-        return reinterpret_cast<const T&>(this->data_);
+        return reinterpret_cast<const T&>(*data_);
     }
 
     void Reset()
     {
         // Вызываем деструктор размещенного в выделенной памяти объекта
-        reinterpret_cast<T*>(data_[0])->~T();
+        reinterpret_cast<T*>(data_)->~T();
         // Парный operator delete для буфера
-        delete (&data_[0]);
+        // Буфер на стеке, operator new/delete для буфера не требуется
+        //delete (&data_);
         is_initialized_ = false;
 
         // Буфер на стеке, удалять не требуется.
@@ -173,7 +226,7 @@ public:
 private:
     // Буфер для хранения 1 объекта типа T.
     // alignas нужен для правильного выравнивания блока памяти
-    // Буфер на стеке, operator new/delete не требуется
+    // Буфер на стеке, operator new/delete для буфера не требуется
     alignas(T) char data_[sizeof(T)];
     // Указатель на размещенный при помощи operator new в буфере объект типа Т
     //T* value_ = nullptr;
