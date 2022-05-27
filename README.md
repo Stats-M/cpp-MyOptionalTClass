@@ -6,6 +6,7 @@
 - Placement new / delete
 - Templates
 - Optional&lt;T> class
+- Variadic Templates
 
 ### Инструкция по использованию:
 Подключите заголовочный файл optional.h к вашему проекту.
