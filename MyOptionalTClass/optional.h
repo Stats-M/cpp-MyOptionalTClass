@@ -163,6 +163,34 @@ public:
         // Буфер на стеке. Удалять его не требуется
     }
 
+    /* Реализация Emplace в std::optional
+    template <class... _Types>
+    _Ty& emplace(_Types&&... _Args) {
+        reset();
+        return this->_Construct(_STD forward<_Types>(_Args)...);
+    }
+
+    template <class _Elem, class... _Types, enable_if_t<is_constructible_v<_Ty, initializer_list<_Elem>&, _Types...>, int> = 0>
+    _Ty& emplace(initializer_list<_Elem> _Ilist, _Types&&... _Args) {
+        reset();
+        return this->_Construct(_Ilist, _STD forward<_Types>(_Args)...);
+    }
+    */
+
+    template <class... U>
+    Optional& Emplace(U&&... args)
+    {
+        // Если в Optional уже есть значение - стираем его 
+        if (is_initialized_)
+        {
+            Reset();
+        }
+        // Вызываем конструктор типа Т через свертку аргументов Variadic Template
+        new (&data_[0]) T(std::forward<U>(args)...);
+        is_initialized_ = true;
+        return *this;
+    }
+
     bool HasValue() const
     {
         return is_initialized_;
