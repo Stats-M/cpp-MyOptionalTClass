@@ -7,6 +7,7 @@
 - Templates
 - Optional&lt;T> class
 - Variadic Templates
+- Перегрузка методов по R-value ссылке
 
 ### Инструкция по использованию:
 Подключите заголовочный файл optional.h к вашему проекту.
